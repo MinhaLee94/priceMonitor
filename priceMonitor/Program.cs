@@ -10,12 +10,16 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 
+using Excel = Microsoft.Office.Interop.Excel;
+using System.Linq;
+using System.Runtime.InteropServices;
+
 // transfer itemList to each store
 // create url-formatting function and xlsx file generating function
 
 namespace priceMonitor {
     class Program {
-        private static ArrayList itemsToSearch = new ArrayList();
+        private static List<Dictionary<string, string>> itemsToSearch = new List<Dictionary<string, string>>();
         private static readonly string directory = "C:\\Users\\john\\Desktop\\SKU Status";
         private static string[] fileEntries = Directory.GetFiles(directory);
 
@@ -24,11 +28,15 @@ namespace priceMonitor {
         protected static ChromeOptions options = null;
         protected static ChromeDriver driver = null;
 
-        private static ArrayList generateItemListToSearch() {
+        private static Excel.Application excelApp = null;
+        private static Excel.Workbook workBook = null;
+        private static Excel.Worksheet workSheet = null;
+
+        private static List<Dictionary<string, string>> generateItemListToSearch() {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             DataTableCollection tablecollection;
-            ArrayList itemList = new ArrayList();
+            List<Dictionary<string, string>> itemList = new List<Dictionary<string, string>>();
 
             foreach (string fileName in fileEntries) {
                 if (fileName != @"C:\Users\john\Desktop\SKU Status\Staples Report 010923.xlsx") continue; // for testing
@@ -48,7 +56,7 @@ namespace priceMonitor {
                             if (datatable.TableName != "DESKTOPS" && datatable.TableName != "LAPTOPS") continue;
 
                             foreach (DataRow item in datatable.Rows) {
-                                //if (item["Status"].ToString() != "ON SITE") continue;
+                                if (item["Status"].ToString() != "ON SITE") continue;
 
                                 Dictionary<string, string> itemInfo = new Dictionary<string, string>() {
                                     {"Joy SKU", item["Joy SKU"].ToString()},
@@ -65,15 +73,75 @@ namespace priceMonitor {
             return itemList;
         }
 
+        private static void generateExcelFileWithSearchedResults(List<Dictionary<string, string>> SearchedResults) {
+            try {
+                string directoryPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                string savePath = directoryPath + "\\" + "Staples status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
+                string[] headers = { "Joy SKU", "Reseller SKU", "C RP" };
+
+                if(File.Exists(savePath)) {
+                    File.Delete(savePath);
+                }
+
+                excelApp = new Excel.Application();
+                workBook = excelApp.Workbooks.Add();
+                workSheet = workBook.Worksheets.get_Item(1) as Excel.Worksheet;
+
+                // set headers
+                for(int i = 0; i < headers.Length; i++) {
+                    workSheet.Cells[1, i + 1] = headers[i];
+                }
+
+                for(int i = 0; i < SearchedResults.Count; i++) {
+                    Dictionary<string, string> curItem = SearchedResults[i];
+
+                    workSheet.Cells[2 + i, 1] = curItem["Joy SKU"];
+                    workSheet.Cells[2 + i, 2] = curItem["Reseller SKU"];
+                    workSheet.Cells[2 + i, 3] = curItem["C RP"];
+                }
+
+                workSheet.Columns.AutoFit();
+                workBook.SaveAs(savePath, Excel.XlFileFormat.xlWorkbookDefault);
+                workBook.Close(true);
+                excelApp.Quit();
+            } finally {
+                ReleaseObject(workSheet);
+                ReleaseObject(workBook);
+                ReleaseObject(excelApp);
+            }
+
+            return;
+        }
+
+        /// <summary>
+        /// Excel object release method
+        /// </summary>
+        /// <param name="obj"></param>
+        public static void ReleaseObject(object obj) {
+            if (obj == null) return;
+
+            try {
+                Marshal.ReleaseComObject(obj);
+                obj = null;
+            } catch (Exception ex) {
+                obj = null;
+                throw ex;
+            } finally {
+                GC.Collect();
+            }
+        }
+
         static void Main(string[] args) {
             itemsToSearch = generateItemListToSearch();
 
-            using (IWebDriver driver = new ChromeDriver()) {
+            generateExcelFileWithSearchedResults(itemsToSearch);
+
+/*            using (IWebDriver driver = new ChromeDriver()) {
                 driver.Url = "https://www.staples.com/2446392/directory_2446392";
-                driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                //driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
                 IWebElement element = driver.FindElement(By.CssSelector(".price-info__final_price_sku"));
                 Console.WriteLine(element.Text);
-            }
+            }*/
 
             /*            driverService = ChromeDriverService.CreateDefaultService();
                         driverService.HideCommandPromptWindow = true;
