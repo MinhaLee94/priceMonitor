@@ -177,13 +177,22 @@ namespace priceMonitor {
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
-                        IWebElement element = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
 
-                        if(Utils.elementExists(element)) {
-                            Console.WriteLine(element.Text);
-                            item.Add("Real Price", element.Text);
+                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
+                        IWebElement outOfStockBox = Utils.findElement(driver, By.XPath("//*[@id='ONE_TIME_PURCHASE']/div/div/div/div/div/div/div[2]/div"));
+
+
+
+                        if (Utils.elementExists(curPrice)) {
+                            if(Utils.elementExists(outOfStockBox) && outOfStockBox.Text == "This item is out of stock") {
+                                Console.WriteLine(outOfStockBox.Text);
+                                item.Add("Real Price", "Out of stock");
+                            } else {
+                                Console.WriteLine(curPrice.Text);
+                                item.Add("Real Price", curPrice.Text);
+                            }
                         } else {
-                            Console.WriteLine("doesn't exist");
+                            item.Add("Real Price", "Off Site");
                         }
                     }
                 }

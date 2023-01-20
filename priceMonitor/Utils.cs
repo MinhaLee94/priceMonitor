@@ -11,6 +11,12 @@ using System.Runtime.InteropServices;
 
 namespace priceMonitor {
     static class Utils {
+        /// <summary>
+        /// Selenium search method with null exception handling
+        /// </summary>
+        /// <param name="driver"></param>
+        /// <param name="by"></param>
+        /// <returns></returns>
         public static IWebElement findElement(this IWebDriver driver, By by) {
             try {
                 return driver.FindElement(by);
@@ -20,6 +26,11 @@ namespace priceMonitor {
             }
         }
 
+        /// <summary>
+        /// Check if Selenium has successfully searched a certain element
+        /// </summary>
+        /// <param name="element"></param>
+        /// <returns></returns>
         public static bool elementExists(this IWebElement element) {
             return element == null ? false : true;
         }
