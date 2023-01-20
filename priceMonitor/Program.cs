@@ -61,8 +61,7 @@ namespace priceMonitor {
                                 Dictionary<string, string> itemInfo = new Dictionary<string, string>() {
                                     {"Joy SKU", item["Joy SKU"].ToString()},
                                     {"Reseller SKU", item["Reseller SKU"].ToString()},
-                                    {"Status", item["Status"].ToString()},
-                                    {"C RP", item["C RP"].ToString()}
+                                    {"C RP", item["C RP"].ToString()},
                                 };
                                 itemList.Add(itemInfo);
                             }
@@ -79,7 +78,7 @@ namespace priceMonitor {
                 string savePath = directoryPath + "\\" + "Staples status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
                 string[] headers = { "Joy SKU", "Reseller SKU", "C RP" };
 
-                if(File.Exists(savePath)) {
+                if (File.Exists(savePath)) {
                     File.Delete(savePath);
                 }
 
@@ -88,11 +87,11 @@ namespace priceMonitor {
                 workSheet = workBook.Worksheets.get_Item(1) as Excel.Worksheet;
 
                 // set headers
-                for(int i = 0; i < headers.Length; i++) {
+                for (int i = 0; i < headers.Length; i++) {
                     workSheet.Cells[1, i + 1] = headers[i];
                 }
 
-                for(int i = 0; i < SearchedResults.Count; i++) {
+                for (int i = 0; i < SearchedResults.Count; i++) {
                     Dictionary<string, string> curItem = SearchedResults[i];
 
                     workSheet.Cells[2 + i, 1] = curItem["Joy SKU"];
@@ -109,7 +108,6 @@ namespace priceMonitor {
                 ReleaseObject(workBook);
                 ReleaseObject(excelApp);
             }
-
             return;
         }
 
@@ -134,14 +132,66 @@ namespace priceMonitor {
         static void Main(string[] args) {
             itemsToSearch = generateItemListToSearch();
 
+
+            driverService = ChromeDriverService.CreateDefaultService();
+            driverService.HideCommandPromptWindow = true;
+
+            options = new ChromeOptions();
+
+            // disable unnecessary preference setting
+            options.AddUserProfilePreference("cookies", 2);
+            options.AddUserProfilePreference("images", 2);
+            options.AddUserProfilePreference("popups", 2);
+            options.AddUserProfilePreference("geolocation", 2);
+            options.AddUserProfilePreference("notifications", 2);
+            options.AddUserProfilePreference("auto_select_certificate", 2);
+            options.AddUserProfilePreference("fullscreen", 2);
+            options.AddUserProfilePreference("mouselock", 2);
+            options.AddUserProfilePreference("mixed_script", 2);
+            options.AddUserProfilePreference("media_stream", 2);
+            options.AddUserProfilePreference("media_stream_mic", 2);
+            options.AddUserProfilePreference("media_stream_camera", 2);
+            options.AddUserProfilePreference("ppapi_broker", 2);
+            options.AddUserProfilePreference("automatic_downloads", 2);
+            options.AddUserProfilePreference("midi_sysex", 2);
+            options.AddUserProfilePreference("push_messaging", 2);
+            options.AddUserProfilePreference("ssl_cert_decisions", 2);
+            options.AddUserProfilePreference("metro_switch_to_desktop", 2);
+            options.AddUserProfilePreference("protected_media_identifier", 2);
+            options.AddUserProfilePreference("app_banner", 2);
+            options.AddUserProfilePreference("site_engagement", 2);
+            options.AddUserProfilePreference("durable_storage", 2);
+            options.AddExcludedArgument("enable-automation");
+
+            options.AddArgument("--disable-extensions");
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--disable-infobars");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--ignore-certificate-errors");
+
+            try {
+                foreach (var item in itemsToSearch) {
+                    string curResellerSku = item["Reseller SKU"];
+                    Console.WriteLine("Reseller SKU: " + curResellerSku);
+
+                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
+                        driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
+                        IWebElement element = driver.FindElement(By.CssSelector(".price-info__final_price_sku"));
+                        Console.WriteLine(element.Text);
+                        item.Add("Real Price", element.Text);
+                    }
+                }
+            } catch(Exception ex) {
+                Console.WriteLine(ex);
+            }
+
+            
+
             generateExcelFileWithSearchedResults(itemsToSearch);
 
-/*            using (IWebDriver driver = new ChromeDriver()) {
-                driver.Url = "https://www.staples.com/2446392/directory_2446392";
-                //driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
-                IWebElement element = driver.FindElement(By.CssSelector(".price-info__final_price_sku"));
-                Console.WriteLine(element.Text);
-            }*/
+
+
 
             /*            driverService = ChromeDriverService.CreateDefaultService();
                         driverService.HideCommandPromptWindow = true;
