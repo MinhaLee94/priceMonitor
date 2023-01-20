@@ -177,16 +177,19 @@ namespace priceMonitor {
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
-                        IWebElement element = driver.FindElement(By.CssSelector(".price-info__final_price_sku"));
-                        Console.WriteLine(element.Text);
-                        item.Add("Real Price", element.Text);
+                        IWebElement element = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
+
+                        if(Utils.elementExists(element)) {
+                            Console.WriteLine(element.Text);
+                            item.Add("Real Price", element.Text);
+                        } else {
+                            Console.WriteLine("doesn't exist");
+                        }
                     }
                 }
             } catch(Exception ex) {
                 Console.WriteLine(ex);
             }
-
-            
 
             generateExcelFileWithSearchedResults(itemsToSearch);
 
