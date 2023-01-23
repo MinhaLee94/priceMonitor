@@ -25,39 +25,35 @@ namespace priceMonitor {
         private static Excel.Workbook workBook = null;
         private static Excel.Worksheet workSheet = null;
 
-        private static List<Dictionary<string, string>> generateItemListToSearch() {
+        private static List<Dictionary<string, string>> generateItemListToSearch(string filePath) {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             DataTableCollection tablecollection;
             List<Dictionary<string, string>> itemList = new List<Dictionary<string, string>>();
 
-            foreach (string fileName in fileEntries) {
-                if (fileName != @"C:\Users\john\Desktop\SKU Status\Staples Report 010923.xlsx") continue; // for testing
+            using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read)) {
+                using (var reader = ExcelReaderFactory.CreateReader(stream)) {
+                    var result = reader.AsDataSet(new ExcelDataSetConfiguration() {
+                        ConfigureDataTable = (_) => new ExcelDataTableConfiguration() {
+                            EmptyColumnNamePrefix = "Column",
+                            UseHeaderRow = true
+                        }
+                    });
+                    tablecollection = result.Tables;
 
-                using (var stream = File.Open(fileName, FileMode.Open, FileAccess.Read)) {
-                    using (var reader = ExcelReaderFactory.CreateReader(stream)) {
-                        var result = reader.AsDataSet(new ExcelDataSetConfiguration() {
-                            ConfigureDataTable = (_) => new ExcelDataTableConfiguration() {
-                                EmptyColumnNamePrefix = "Column",
-                                UseHeaderRow = true
-                            }
-                        });
-                        tablecollection = result.Tables;
+                    foreach (DataTable datatable in tablecollection) {
+                        if (datatable.TableName.ToUpper() != "DESKTOPS" && datatable.TableName.ToUpper() != "LAPTOPS") continue;
 
-                        foreach (DataTable datatable in tablecollection) {
-                            if (datatable.TableName.ToUpper() != "DESKTOPS" && datatable.TableName.ToUpper() != "LAPTOPS") continue;
+                        foreach (DataRow item in datatable.Rows) {
+                            if (item["Status"].ToString() != "ON SITE") continue;
 
-                            foreach (DataRow item in datatable.Rows) {
-                                if (item["Status"].ToString() != "ON SITE") continue;
+                            Dictionary<string, string> itemInfo = new Dictionary<string, string>() {
+                                {"Joy SKU", item["Joy SKU"].ToString()},
+                                {"Reseller SKU", item["Reseller SKU"].ToString()},
+                                {"C RP", item["C RP"].ToString()},
+                            };
 
-                                Dictionary<string, string> itemInfo = new Dictionary<string, string>() {
-                                    {"Joy SKU", item["Joy SKU"].ToString()},
-                                    {"Reseller SKU", item["Reseller SKU"].ToString()},
-                                    {"C RP", item["C RP"].ToString()},
-                                };
-
-                                itemList.Add(itemInfo);
-                            }
+                            itemList.Add(itemInfo);
                         }
                     }
                 }
@@ -68,7 +64,7 @@ namespace priceMonitor {
         private static void generateExcelFileWithSearchedResults(List<Dictionary<string, string>> SearchedResults) {
             try {
                 string directoryPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string savePath = directoryPath + "\\" + "Staples status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
+                string savePath = directoryPath + "\\" + vendor + " status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
                 string[] headers = { "Joy SKU", "Reseller SKU", "C RP", "Real Price", "Status", "RP Change" };
 
                 if (File.Exists(savePath)) File.Delete(savePath);
@@ -160,13 +156,16 @@ namespace priceMonitor {
         }
 
         static void Main(string[] args) {
-            itemsToSearch = generateItemListToSearch();
 
-            checkInventoryAndPrice("Staples");
+            foreach(string filePath in fileEntries) {
+                itemsToSearch = generateItemListToSearch(filePath);
+                vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" "));
+                checkInventoryAndPrice(vendor);
+                generateExcelFileWithSearchedResults(itemsToSearch);
 
-            generateExcelFileWithSearchedResults(itemsToSearch);
-
-
+                itemsToSearch.Clear();
+                vendor = "";
+            }
 
 
             /*            driverService = ChromeDriverService.CreateDefaultService();
