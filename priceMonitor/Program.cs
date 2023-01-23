@@ -4,7 +4,6 @@ using ExcelDataReader;
 using System.IO;
 using System.Data;
 using System.Collections.Generic;
-using System.Collections;
 
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -14,19 +13,13 @@ using Excel = Microsoft.Office.Interop.Excel;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-// transfer itemList to each store
-// create url-formatting function and xlsx file generating function
-
 namespace priceMonitor {
     class Program {
-        private static List<Dictionary<string, string>> itemsToSearch = new List<Dictionary<string, string>>();
         private static readonly string directory = "C:\\Users\\john\\Desktop\\SKU Status";
         private static string[] fileEntries = Directory.GetFiles(directory);
 
-
-        protected static ChromeDriverService driverService = null;
-        protected static ChromeOptions options = null;
-        protected static ChromeDriver driver = null;
+        private static List<Dictionary<string, string>> itemsToSearch = new List<Dictionary<string, string>>();
+        private static string vendor = "";
 
         private static Excel.Application excelApp = null;
         private static Excel.Workbook workBook = null;
@@ -49,11 +42,10 @@ namespace priceMonitor {
                                 UseHeaderRow = true
                             }
                         });
-
                         tablecollection = result.Tables;
 
                         foreach (DataTable datatable in tablecollection) {
-                            if (datatable.TableName != "DESKTOPS" && datatable.TableName != "LAPTOPS") continue;
+                            if (datatable.TableName.ToUpper() != "DESKTOPS" && datatable.TableName.ToUpper() != "LAPTOPS") continue;
 
                             foreach (DataRow item in datatable.Rows) {
                                 if (item["Status"].ToString() != "ON SITE") continue;
@@ -63,6 +55,7 @@ namespace priceMonitor {
                                     {"Reseller SKU", item["Reseller SKU"].ToString()},
                                     {"C RP", item["C RP"].ToString()},
                                 };
+
                                 itemList.Add(itemInfo);
                             }
                         }
@@ -76,11 +69,9 @@ namespace priceMonitor {
             try {
                 string directoryPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
                 string savePath = directoryPath + "\\" + "Staples status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
-                string[] headers = { "Joy SKU", "Reseller SKU", "C RP" };
+                string[] headers = { "Joy SKU", "Reseller SKU", "C RP", "Real Price", "Status", "RP Change" };
 
-                if (File.Exists(savePath)) {
-                    File.Delete(savePath);
-                }
+                if (File.Exists(savePath)) File.Delete(savePath);
 
                 excelApp = new Excel.Application();
                 workBook = excelApp.Workbooks.Add();
@@ -97,6 +88,11 @@ namespace priceMonitor {
                     workSheet.Cells[2 + i, 1] = curItem["Joy SKU"];
                     workSheet.Cells[2 + i, 2] = curItem["Reseller SKU"];
                     workSheet.Cells[2 + i, 3] = curItem["C RP"];
+                    workSheet.Cells[2 + i, 4] = curItem["Real Price"];
+                    workSheet.Cells[2 + i, 5] = curItem["Status"];
+
+                    if (curItem["C RP"] != curItem["Real Price"])
+                        workSheet.Cells[2 + i, 6] = curItem["C RP"] + " > " + curItem["Real Price"];
                 }
 
                 workSheet.Columns.AutoFit();
@@ -129,46 +125,10 @@ namespace priceMonitor {
             }
         }
 
-        static void Main(string[] args) {
-            itemsToSearch = generateItemListToSearch();
 
-
-            driverService = ChromeDriverService.CreateDefaultService();
-            driverService.HideCommandPromptWindow = true;
-
-            options = new ChromeOptions();
-
-            // disable unnecessary preference setting
-            options.AddUserProfilePreference("cookies", 2);
-            options.AddUserProfilePreference("images", 2);
-            options.AddUserProfilePreference("popups", 2);
-            options.AddUserProfilePreference("geolocation", 2);
-            options.AddUserProfilePreference("notifications", 2);
-            options.AddUserProfilePreference("auto_select_certificate", 2);
-            options.AddUserProfilePreference("fullscreen", 2);
-            options.AddUserProfilePreference("mouselock", 2);
-            options.AddUserProfilePreference("mixed_script", 2);
-            options.AddUserProfilePreference("media_stream", 2);
-            options.AddUserProfilePreference("media_stream_mic", 2);
-            options.AddUserProfilePreference("media_stream_camera", 2);
-            options.AddUserProfilePreference("ppapi_broker", 2);
-            options.AddUserProfilePreference("automatic_downloads", 2);
-            options.AddUserProfilePreference("midi_sysex", 2);
-            options.AddUserProfilePreference("push_messaging", 2);
-            options.AddUserProfilePreference("ssl_cert_decisions", 2);
-            options.AddUserProfilePreference("metro_switch_to_desktop", 2);
-            options.AddUserProfilePreference("protected_media_identifier", 2);
-            options.AddUserProfilePreference("app_banner", 2);
-            options.AddUserProfilePreference("site_engagement", 2);
-            options.AddUserProfilePreference("durable_storage", 2);
-            options.AddExcludedArgument("enable-automation");
-
-            options.AddArgument("--disable-extensions");
-            options.AddArgument("--disable-gpu");
-            options.AddArgument("--disable-infobars");
-            options.AddArgument("--disable-dev-shm-usage");
-            options.AddArgument("--no-sandbox");
-            options.AddArgument("--ignore-certificate-errors");
+        public static void checkInventoryAndPrice(string vendor) {
+            ChromeDriverService driverService = Utils.configChromeDriverService();
+            ChromeOptions options = Utils.configChromeOptions();
 
             try {
                 foreach (var item in itemsToSearch) {
@@ -177,28 +137,32 @@ namespace priceMonitor {
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
-
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
-                        IWebElement outOfStockBox = Utils.findElement(driver, By.XPath("//*[@id='ONE_TIME_PURCHASE']/div/div/div/div/div/div/div[2]/div"));
-
-
+                        IWebElement outOfStockSign = Utils.findElement(driver, By.XPath("//*[@id='ONE_TIME_PURCHASE']/div/div/div/div/div/div/div[2]/div"));
 
                         if (Utils.elementExists(curPrice)) {
-                            if(Utils.elementExists(outOfStockBox) && outOfStockBox.Text == "This item is out of stock") {
-                                Console.WriteLine(outOfStockBox.Text);
-                                item.Add("Real Price", "Out of stock");
-                            } else {
-                                Console.WriteLine(curPrice.Text);
+                            if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text == "This item is out of stock") {
                                 item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "OUT OF STOCK");
+                            } else {
+                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "ON SITE");
                             }
                         } else {
-                            item.Add("Real Price", "Off Site");
+                            item.Add("Real Price", "");
+                            item.Add("Status", "OFF SITE");
                         }
                     }
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 Console.WriteLine(ex);
             }
+        }
+
+        static void Main(string[] args) {
+            itemsToSearch = generateItemListToSearch();
+
+            checkInventoryAndPrice("Staples");
 
             generateExcelFileWithSearchedResults(itemsToSearch);
 
@@ -214,13 +178,6 @@ namespace priceMonitor {
 
                         driver = new ChromeDriver(driverService, options);
                         driver.Navigate().GoToUrl(url);*/
-
-
-
-
-
-
-
 
 
             /*            HtmlWeb web = new HtmlWeb();
