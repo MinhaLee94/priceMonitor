@@ -43,7 +43,7 @@ namespace priceMonitor {
                         if (datatable.TableName.ToUpper() != "DESKTOPS" && datatable.TableName.ToUpper() != "LAPTOPS") continue;
 
                         foreach (DataRow item in datatable.Rows) {
-                            if (item["Status"].ToString() != "ON SITE") continue;
+                            if (item["Status"].ToString().ToUpper() != "ON SITE") continue;
 
                             Dictionary<string, string> itemInfo = new Dictionary<string, string>() {
                                 {"Joy SKU", item["Joy SKU"].ToString()},
@@ -124,74 +124,20 @@ namespace priceMonitor {
             ChromeDriverService driverService = Utils.configChromeDriverService();
             ChromeOptions options = Utils.configChromeOptions();
 
-            switch (vendor) {
+            Console.WriteLine(vendor);
+            if(vendor == "OFFICEDEPOT")
+                Selenium.scrapOfficeDepotItems(itemsToSearch, driverService, options);
+
+/*            switch (vendor) {
                 case "STAPLES":
-                    scrapStaplesItems(driverService, options);
+                    Selenium.scrapStaplesItems(itemsToSearch, driverService, options);
                     break;
                 case "NEWEGG":
-                    scrapNewEggItems(driverService, options);
+                    Selenium.scrapNewEggItems(itemsToSearch, driverService, options);
                     break;
                 default:
                     break;
-            }
-        }
-
-        public static void scrapStaplesItems(ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
-                    string curResellerSku = item["Reseller SKU"];
-                    Console.WriteLine("Reseller SKU: " + curResellerSku);
-
-                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
-                        driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
-                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
-                        IWebElement outOfStockSign = Utils.findElement(driver, By.XPath("//*[@id='ONE_TIME_PURCHASE']/div/div/div/div/div/div/div[2]/div"));
-
-                        if (Utils.elementExists(curPrice)) {
-                            if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text == "This item is out of stock") {
-                                item.Add("Real Price", curPrice.Text);
-                                item.Add("Status", "OUT OF STOCK");
-                            } else {
-                                item.Add("Real Price", curPrice.Text);
-                                item.Add("Status", "ON SITE");
-                            }
-                        } else {
-                            item.Add("Real Price", "");
-                            item.Add("Status", "OFF SITE");
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
-            }
-        }
-
-        public static void scrapNewEggItems(ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
-                    string curResellerSku = item["Reseller SKU"];
-                    Console.WriteLine("Reseller SKU: " + curResellerSku);
-
-                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
-                        driver.Url = $"https://www.newegg.com/p/{curResellerSku}?item={curResellerSku}";
-                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".product-buy-box .price-current"));
-                        IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".product-buy-box .btn-message"));
-
-                        if (Utils.elementExists(curPrice)) {
-                            item.Add("Real Price", curPrice.Text);
-                            item.Add("Status", "ON SITE");
-                        } else if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text == "OUT OF STOCK") {
-                            item.Add("Real Price", "");
-                            item.Add("Status", "OUT OF STOCK");
-                        } else {
-                            item.Add("Real Price", "");
-                            item.Add("Status", "OFF SITE");
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
-            }
+            }*/
         }
 
         static void Main(string[] args) {
@@ -199,9 +145,9 @@ namespace priceMonitor {
 
             foreach (string filePath in fileEntries) {
                 itemsToSearch = generateItemListToSearch(filePath);
-                vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" "));
+                vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" ")).ToUpper();
                 checkInventoryAndPrice(vendor);
-                generateExcelFileWithSearchedResults(itemsToSearch, vendor);
+                //generateExcelFileWithSearchedResults(itemsToSearch, vendor);
 
                 itemsToSearch.Clear();
                 vendor = "";
