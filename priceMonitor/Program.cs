@@ -17,9 +17,7 @@ namespace priceMonitor {
     class Program {
         private static readonly string directory = "C:\\Users\\john\\Desktop\\SKU Status";
         private static string[] fileEntries = Directory.GetFiles(directory);
-
         private static List<Dictionary<string, string>> itemsToSearch = new List<Dictionary<string, string>>();
-        private static string vendor = "";
 
         private static Excel.Application excelApp = null;
         private static Excel.Workbook workBook = null;
@@ -61,7 +59,7 @@ namespace priceMonitor {
             return itemList;
         }
 
-        private static void generateExcelFileWithSearchedResults(List<Dictionary<string, string>> SearchedResults) {
+        private static void generateExcelFileWithSearchedResults(List<Dictionary<string, string>> SearchedResults, string vendor) {
             try {
                 string directoryPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
                 string savePath = directoryPath + "\\" + vendor + " status " + DateTime.Now.ToString("MMddyy") + ".xlsx";
@@ -126,6 +124,19 @@ namespace priceMonitor {
             ChromeDriverService driverService = Utils.configChromeDriverService();
             ChromeOptions options = Utils.configChromeOptions();
 
+            switch (vendor) {
+                case "STAPLES":
+                    scrapStaplesItems(driverService, options);
+                    break;
+                case "NEWEGG":
+                    scrapNewEggItems(driverService, options);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public static void scrapStaplesItems(ChromeDriverService driverService, ChromeOptions options) {
             try {
                 foreach (var item in itemsToSearch) {
                     string curResellerSku = item["Reseller SKU"];
@@ -155,13 +166,42 @@ namespace priceMonitor {
             }
         }
 
-        static void Main(string[] args) {
+        public static void scrapNewEggItems(ChromeDriverService driverService, ChromeOptions options) {
+            try {
+                foreach (var item in itemsToSearch) {
+                    string curResellerSku = item["Reseller SKU"];
+                    Console.WriteLine("Reseller SKU: " + curResellerSku);
 
-            foreach(string filePath in fileEntries) {
+                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
+                        driver.Url = $"https://www.newegg.com/p/{curResellerSku}?item={curResellerSku}";
+                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".product-buy-box .price-current"));
+                        IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".product-buy-box .btn-message"));
+
+                        if (Utils.elementExists(curPrice)) {
+                            item.Add("Real Price", curPrice.Text);
+                            item.Add("Status", "ON SITE");
+                        } else if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text == "OUT OF STOCK") {
+                            item.Add("Real Price", "");
+                            item.Add("Status", "OUT OF STOCK");
+                        } else {
+                            item.Add("Real Price", "");
+                            item.Add("Status", "OFF SITE");
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Console.WriteLine(ex);
+            }
+        }
+
+        static void Main(string[] args) {
+            string vendor = "";
+
+            foreach (string filePath in fileEntries) {
                 itemsToSearch = generateItemListToSearch(filePath);
                 vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" "));
                 checkInventoryAndPrice(vendor);
-                generateExcelFileWithSearchedResults(itemsToSearch);
+                generateExcelFileWithSearchedResults(itemsToSearch, vendor);
 
                 itemsToSearch.Clear();
                 vendor = "";
@@ -180,9 +220,10 @@ namespace priceMonitor {
 
 
             /*            HtmlWeb web = new HtmlWeb();
-                        HtmlDocument htmlDoc = web.Load("https://www.staples.com/2446392/directory_2446392");
+            HtmlDocument htmlDoc = web.Load("https://www.newegg.com/p/34-343-954?item=34-343-954");
 
-                        System.Diagnostics.Debug.WriteLine(htmlDoc.DocumentNode.OuterHtml);*/
+            System.Diagnostics.Debug.WriteLine(htmlDoc.DocumentNode.OuterHtml);*/
+
 
         }
     }
