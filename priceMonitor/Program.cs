@@ -125,15 +125,24 @@ namespace priceMonitor {
             ChromeOptions options = Utils.configChromeOptions();
 
             Console.WriteLine(vendor);
-            if(vendor == "OFFICEDEPOT")
-                Selenium.scrapOfficeDepotItems(itemsToSearch, driverService, options);
+            if(vendor.ToUpper() == "BESTBUY")
+                Selenium.scrapBestBuyItems(itemsToSearch, driverService, options);
 
-/*            switch (vendor) {
+/*            switch (vendor.ToUpper()) {
                 case "STAPLES":
                     Selenium.scrapStaplesItems(itemsToSearch, driverService, options);
                     break;
                 case "NEWEGG":
                     Selenium.scrapNewEggItems(itemsToSearch, driverService, options);
+                    break;
+                case "TARGETPLUS":
+                    Selenium.scrapTargetPlusItems(itemsToSearch, driverService, options);
+                    break;
+                case "OFFICEDEPOT":
+                    Selenium.scrapOfficeDepotItems(itemsToSearch, driverService, options);
+                    break;
+                case "BESTBUY":
+                    Selenium.scrapBestBuyItems(itemsToSearch, driverService, options);
                     break;
                 default:
                     break;
@@ -145,7 +154,7 @@ namespace priceMonitor {
 
             foreach (string filePath in fileEntries) {
                 itemsToSearch = generateItemListToSearch(filePath);
-                vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" ")).ToUpper();
+                vendor = Path.GetFileName(filePath).Substring(0, Path.GetFileName(filePath).IndexOf(" "));
                 checkInventoryAndPrice(vendor);
                 //generateExcelFileWithSearchedResults(itemsToSearch, vendor);
 

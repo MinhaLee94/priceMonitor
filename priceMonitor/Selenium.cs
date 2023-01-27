@@ -93,5 +93,66 @@ namespace priceMonitor {
                 Console.WriteLine(ex);
             }
         }
+
+        public static void scrapTargetPlusItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
+            try {
+                foreach (var item in itemsToSearch) {
+                    string curResellerSku = item["Reseller SKU"];
+                    Console.WriteLine("Reseller SKU: " + curResellerSku);
+
+                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
+                        driver.Url = $"https://www.target.com/s?searchTerm={curResellerSku}";
+                        driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".h-padding-r-tiny"));
+                        IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector($"#addToCartButtonOrTextIdFor{curResellerSku}"));
+
+                        if (Utils.elementExists(curPrice)) {
+                            if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "SOLD OUT") {
+                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "OUT OF STOCK");
+                            } else {
+                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "ON SITE");
+                            }
+                        } else {
+                            item.Add("Real Price", "");
+                            item.Add("Status", "OFF SITE");
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Console.WriteLine(ex);
+            }
+        }
+
+        public static void scrapBestBuyItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
+            try {
+                foreach (var item in itemsToSearch) {
+                    string curResellerSku = item["Reseller SKU"];
+                    Console.WriteLine("Reseller SKU: " + curResellerSku);
+
+                    using (IWebDriver driver = new ChromeDriver(driverService, options)) {
+                        driver.Url = $"https://www.bestbuy.com/site/searchpage.jsp?st={curResellerSku}";
+                        IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".pricing-price .priceView-customer-price > span:first-child"));
+                        IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".fulfillment-fulfillment-summary>div>div>div:nth-child(2)>div"));
+
+                        if (Utils.elementExists(curPrice)) {
+                            if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "SOLD OUT") {
+                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "OUT OF STOCK");
+                            } else {
+                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Status", "ON SITE");
+                            }
+                        } else {
+                            item.Add("Real Price", "");
+                            item.Add("Status", "OFF SITE");
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Console.WriteLine(ex);
+            }
+        }
     }
 }
