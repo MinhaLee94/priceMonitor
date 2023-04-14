@@ -21,7 +21,7 @@ namespace priceMonitor {
 
                         if (Utils.elementExists(curPrice)) {
                             if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "THIS ITEM IS OUT OF STOCK") {
-                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Real Price", curPrice.Text.Replace(",", ""));
                                 item.Add("Status", "OUT OF STOCK");
                             } else {
                                 item.Add("Real Price", curPrice.Text);
@@ -53,7 +53,7 @@ namespace priceMonitor {
                         IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".product-buy-box .btn-message"));
 
                         if (Utils.elementExists(curPrice)) {
-                            item.Add("Real Price", curPrice.Text);
+                            item.Add("Real Price", curPrice.Text.Replace(",", ""));
                             item.Add("Status", "ON SITE");
                         } else if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "OUT OF STOCK") {
                             item.Add("Real Price", "");
@@ -85,7 +85,7 @@ namespace priceMonitor {
 
                         if (Utils.elementExists(curPrice)) {
                             if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "OUT OF STOCK") {
-                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Real Price", curPrice.Text.Replace(",", ""));
                                 item.Add("Status", "OUT OF STOCK");
                             } else {
                                 item.Add("Real Price", curPrice.Text);
@@ -118,7 +118,7 @@ namespace priceMonitor {
 
                         if (Utils.elementExists(curPrice)) {
                             if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "SOLD OUT") {
-                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Real Price", curPrice.Text.Replace(",", ""));
                                 item.Add("Status", "OUT OF STOCK");
                             } else {
                                 item.Add("Real Price", curPrice.Text);
@@ -151,7 +151,7 @@ namespace priceMonitor {
 
                         if (Utils.elementExists(curPrice)) {
                             if (Utils.elementExists(outOfStockSign) && outOfStockSign.Text.ToUpper() == "SOLD OUT") {
-                                item.Add("Real Price", curPrice.Text);
+                                item.Add("Real Price", curPrice.Text.Replace(",", ""));
                                 item.Add("Status", "OUT OF STOCK");
                             } else {
                                 item.Add("Real Price", curPrice.Text);
