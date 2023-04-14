@@ -7,13 +7,15 @@ using OpenQA.Selenium.Chrome;
 namespace priceMonitor {
     class Selenium {
         public static void scrapStaplesItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
+            foreach (var item in itemsToSearch) {
+                try {
                     string curResellerSku = item["Reseller SKU"];
                     Console.WriteLine("Reseller SKU: " + curResellerSku);
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.staples.com/{curResellerSku}/directory_{curResellerSku}";
+                        driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".price-info__final_price_sku"));
                         IWebElement outOfStockSign = Utils.findElement(driver, By.XPath("//*[@id='ONE_TIME_PURCHASE']/div/div/div/div/div/div/div[2]/div"));
 
@@ -30,20 +32,23 @@ namespace priceMonitor {
                             item.Add("Status", "OFF SITE");
                         }
                     }
+                } catch (Exception ex) {
+                    Console.WriteLine(ex);
+                    continue;
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
             }
         }
 
         public static void scrapNewEggItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
+            foreach (var item in itemsToSearch) {
+                try {
                     string curResellerSku = item["Reseller SKU"];
                     Console.WriteLine("Reseller SKU: " + curResellerSku);
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.newegg.com/p/{curResellerSku}?item={curResellerSku}";
+                        driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".product-buy-box .price-current"));
                         IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".product-buy-box .btn-message"));
 
@@ -58,20 +63,23 @@ namespace priceMonitor {
                             item.Add("Status", "OFF SITE");
                         }
                     }
+                } catch (Exception ex) {
+                    Console.WriteLine(ex);
+                    continue;
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
             }
         }
 
         public static void scrapOfficeDepotItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
+            foreach (var item in itemsToSearch) {
+                try {
                     string curResellerSku = item["Reseller SKU"];
                     Console.WriteLine("Reseller SKU: " + curResellerSku);
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.officedepot.com/catalog/catalogSku.do?id={curResellerSku}";
+                        driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".od-graphql-price-big-price"));
                         IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".od-fulfillment-option-in-stock-message-text-oos"));
 
@@ -88,21 +96,23 @@ namespace priceMonitor {
                             item.Add("Status", "OFF SITE");
                         }
                     }
+                } catch (Exception ex) {
+                    Console.WriteLine(ex);
+                    continue;
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
             }
         }
 
         public static void scrapTargetPlusItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
+            foreach (var item in itemsToSearch) {
+                try {
                     string curResellerSku = item["Reseller SKU"];
                     Console.WriteLine("Reseller SKU: " + curResellerSku);
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.target.com/s?searchTerm={curResellerSku}";
                         driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".h-padding-r-tiny"));
                         IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector($"#addToCartButtonOrTextIdFor{curResellerSku}"));
 
@@ -119,20 +129,23 @@ namespace priceMonitor {
                             item.Add("Status", "OFF SITE");
                         }
                     }
+                } catch (Exception ex) {
+                    Console.WriteLine(ex);
+                    continue;
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
             }
         }
 
         public static void scrapBestBuyItems(List<Dictionary<string, string>> itemsToSearch, ChromeDriverService driverService, ChromeOptions options) {
-            try {
-                foreach (var item in itemsToSearch) {
+            foreach (var item in itemsToSearch) {
+                try {
                     string curResellerSku = item["Reseller SKU"];
                     Console.WriteLine("Reseller SKU: " + curResellerSku);
 
                     using (IWebDriver driver = new ChromeDriver(driverService, options)) {
                         driver.Url = $"https://www.bestbuy.com/site/searchpage.jsp?st={curResellerSku}";
+                        driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+                        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
                         IWebElement curPrice = Utils.findElement(driver, By.CssSelector(".pricing-price .priceView-customer-price > span:first-child"));
                         IWebElement outOfStockSign = Utils.findElement(driver, By.CssSelector(".fulfillment-fulfillment-summary>div>div>div:nth-child(2)>div"));
 
@@ -149,9 +162,10 @@ namespace priceMonitor {
                             item.Add("Status", "OFF SITE");
                         }
                     }
+                } catch (Exception ex) {
+                    Console.WriteLine(ex);
+                    continue;
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
             }
         }
     }
